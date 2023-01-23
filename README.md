@@ -7,6 +7,6 @@
 
 ### Установка
 
-bash```
+```bash
 npm i file-structure-builder
 ```
