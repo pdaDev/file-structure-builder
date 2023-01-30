@@ -47,7 +47,7 @@ module.exports = class DataFormatter {
 
     appendToBlock(blockName, data, margins) {
         return this._formatInputData([blockName, data], ([blockName, data]) => {
-            const [first, second] = this._separateStringInTwoParts(this._data, this._findLastBracket(this._data, blockName) - 1)
+            const [first, second] = this._separateStringInTwoParts(this._data, this._findBracketIndexes(this._data, blockName)[1] - 1)
             const initTabs = this._defineTab(this._getLineFromIndex(this._data, this._data.indexOf(blockName)));
             this._data = this._addMargins(`${first.trim()}\n${this._tabString(data.trim(), initTabs)}\n${second.trim()}`, margins )
             return this
@@ -56,7 +56,7 @@ module.exports = class DataFormatter {
     appendToExport(data, margins) {
         return this._formatInputData(data, (data) => {
             if (/export/gm.test(this._data)) {
-                const [first, second] = this._separateStringInTwoParts(this._data, this._data.indexOf(this._getLineFromIndex(this._data, this._findLastBracket(this._data, 'export'))) + 1)
+                const [first, second] = this._separateStringInTwoParts(this._data, this._data.indexOf(this._getLineFromIndex(this._data, this._findBracketIndexes(this._data, 'export')[1])) + 1)
                 const [beforeBracket, afterBracket] = this._separateStringInTwoParts(second, second.indexOf('}'))
                 this._data = this._addMargins(`${first}${this._moveLine(`${beforeBracket.trimEnd()}, ${data} ${afterBracket.trim()}`,
                     this._data.substring(this._data.indexOf('export'), this._data.length).length < this.stringWidth)}`, margins)
@@ -80,7 +80,7 @@ module.exports = class DataFormatter {
     appendAfter(sep, data, margins) {
         return this._formatInputData([sep, data], (([sep, data]) => {
             const [first, second] = this._separateStringInTwoParts(this._data, this._data.indexOf(sep) + sep.length)
-            this._data = this._addMargins(`${first}${data}${second}`, margins)
+            this._data = `${first}${this._tabString(this._addMargins(data, margins), this._defineTab(first), margins.includes('up' | 'down'))}${second}`
             return this
         }))
     }
@@ -88,7 +88,7 @@ module.exports = class DataFormatter {
     appendBefore(sep, data, margins) {
         return this._formatInputData([sep, data], ([sep, data]) => {
             const [first, second] = this._separateStringInTwoParts(this._data, this._data.indexOf(sep) - 1)
-            this._data = this._addMargins(`${first}${data}${second}`, margins)
+            this._data = `${first}${this._addMargins(data, margins)}${second}`
             return this
         })
     }
@@ -107,6 +107,27 @@ module.exports = class DataFormatter {
         })
     }
 
+    // appendToArrayOrObject(type, objectName, data, margins) {
+    //     return this._formatInputData([data, objectName],([data, objectName]) => {
+    //         const bracketEnd = this._findBracketIndexes(this._data, objectName)[1];
+    //         let firstSymbolBeforeBracket = 0
+    //         for (let i = bracketEnd - 1; i > 0; i--) {
+    //             if (this._data[i] !== (' ' || '\n')) {
+    //                 firstSymbolBeforeBracket = i
+    //             }
+    //         }
+    //         const [s, e] = this._separateStringInTwoParts(this._data, this._data.indexOf(this._getLineFromIndex(this._data, firstSymbolBeforeBracket) + 1))
+    //         const [start, end] = this._separateStringInTwoParts(e, firstSymbolBeforeBracket)
+    //         const lastNewLineIndex = end.indexOf('\n')
+    //         const [ss, ee] = this._separateStringInTwoParts(end,  lastNewLineIndex !== -1 ? lastNewLineIndex : end.length - 1)
+    //         const comma = this._data[firstSymbolBeforeBracket] !== (type === 'object' ? '{' : '[') ? ',' : ''
+    //
+    //         this._data = `${s}${this._moveLine(`${start}${comma}${this._addMargins(data, margins)}${ss}`)}${ee}`
+    //
+    //         return this
+    //     })
+    // }
+
     _separateStringInTwoParts(string, index) {
         return [string.substring(0, index), string.substring(index, string.length)]
     }
@@ -116,25 +137,27 @@ module.exports = class DataFormatter {
     }
 
     _getLineFromIndex(string, index) {
-        const indexStart = [...string.substring(0, string.length)].reduce((acc, char, i) => char === '\n' && i < index ? i : acc, -1)
+        const indexStart = [...string].reduce((acc, char, i) => char === '\n' && i < index ? i : acc, -1)
         return string.substring(indexStart, string.length)
     }
 
-    _findLastBracket(string, blockName) {
-        const startIndex = string.indexOf(blockName);
+    _findBracketIndexes(string, blockName, bracketType = '{}') {
+        const startIndex = string.indexOf(`${blockName} = ${bracketType[0]}`) + blockName.length + 3;
         let bracketsWithoutPair = 0;
-        return [...string.substring(startIndex, string.length)].reduce((acc, char, i) => {
-            if (char === '{') {
-                bracketsWithoutPair++
-            }
-            if (char === '}') {
-                bracketsWithoutPair--
-                if (bracketsWithoutPair === 0) {
-                    return i + startIndex
+        return [ startIndex,
+            [...string.substring(startIndex, string.length)].reduce((acc, char, i) => {
+                if (char === bracketType[0]) {
+                    bracketsWithoutPair++
                 }
-            }
-            return acc
-        }, -1)
+                if (char === bracketType[1]) {
+                    bracketsWithoutPair--
+                    if (bracketsWithoutPair === 0) {
+                        return i + startIndex
+                    }
+                }
+                return acc
+            }, -1)
+        ]
     }
 
     _tabString(string, initTab = 0, needAddTab = true) {
@@ -148,3 +171,13 @@ module.exports = class DataFormatter {
         return this._data
     }
 }
+
+const DATA = `
+const b = [ 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+
+
+
+`
+
+const refactor = new DataFormatter(DATA, { stringWidth: 70, fileExt: 'txt', tab: 5 }, {name: 'dima'})
+console.log(refactor.appendAfter('const b = [', '5,', []).getData())
