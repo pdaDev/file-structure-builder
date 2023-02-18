@@ -8,7 +8,7 @@
 --safe - first of all programm show you future chages and request confirm of it
 */
 
-declare module "WorkTreeCreator" {
+declare module "file-structure-builder" {
     class WorkTreeCreator {
         /** this method add some method to operate with something
          * @param name name of methof
