@@ -6,8 +6,14 @@ module.exports = class ConstrictionsHelper {
         this._config = config
         this._args = args
     }
-    checkExistence(path, value) {
-        const truePath = p.resolve(this._config?.dir || '', path, value)
+
+    checkFileExistence(path, file) {
+        const truePath = p.resolve(this._config?.dir || '', path, file)
         return new TreeHelper().checkDir(truePath)
+    }
+    
+    checkContentExistenceInFile(path, value) {
+        const truePath = p.resolve(this._config?.dir || '', path)
+        return new TreeHelper().getFileContent(truePath).indexOf(value) !== -1
     }
 }

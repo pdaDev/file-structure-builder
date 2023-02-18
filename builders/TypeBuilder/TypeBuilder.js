@@ -21,9 +21,10 @@ module.exports = class TypeBuilder {
         console.log('Are you sure to do it? (y/n)')
         return new Promise(res => {
             rl.on('line', str => {
-                if (['y', 'n'].includes(str)) {
+                const response = str.toLowerCase()
+                if (['y', 'n'].includes(response)) {
                     rl.close()
-                    res(str === 'y')
+                    res(response === 'y')
                 }
             })
         }).then(data => data && callback())
@@ -37,14 +38,30 @@ module.exports = class TypeBuilder {
                 acc[arg] = args[i]
                 return acc
             } , {})
+
+            const lastArg = args[args.length - 1]
+            const prefix = '--'
+            const getWithPrefix = (str) => prefix + str;
+            const mode = [getWithPrefix('test'), getWithPrefix('mode'), getWithPrefix('safe')].includes(lastArg) ? lastArg.replace(prefix, '') : 'build'
             const availableActions = this._actions.filter(action => action.resolveConstrictions(typeArgs, config).length === 0
             )
             if (availableActions.length === 0) {
                 console.log(this._actions[0].resolveConstrictions(typeArgs, config))
             } else {
-                this._requestConfirm(() => availableActions[0].launch(config, typeArgs))
+                const logAboutSuccessWork = () => console.log('Program exit with code 0')
+                switch (mode) {
+                    case 'test':
+                        availableActions[0].launch(config, typeArgs, mode).then(logAboutSuccessWork)
+                        break;
+                    case 'build':
+                        this._requestConfirm(() => availableActions[0].launch(config, typeArgs, mode).then(logAboutSuccessWork))
+                        break;
+                    case 'safe':
+                        availableActions[0].launch(config, typeArgs, 'test').then(() => {
+                            this._requestConfirm(() => availableActions[0].launch(config, typeArgs, 'build').then(logAboutSuccessWork))
+                        })
+                }
             }
-
         }
     }
 }

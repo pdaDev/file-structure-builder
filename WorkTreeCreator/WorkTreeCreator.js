@@ -9,7 +9,7 @@ module.exports = class WorkTreeCreator {
     treeCreator = new TreeHelper()
 
     constructor(dir, fileStructure, config) {
-        const paths = dir ? dir.split('.') : [];
+        const paths = dir ? dir.split('/') : [];
         this._dirPath = path.resolve(__dirname.substring(0, __dirname.indexOf(paths[0])), ...paths);
         this._fileStructure = fileStructure || {};
         this._config = {
@@ -21,10 +21,6 @@ module.exports = class WorkTreeCreator {
 
     makeFileStructure() {
         this.treeCreator.createFileTree(this._dirPath, this._fileStructure)
-    }
-
-    _getJSXFileExtension() {
-
     }
 
     launch() {

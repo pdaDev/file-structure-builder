@@ -9,12 +9,13 @@ module.exports = class ArgsHelper {
         if (typeof data === 'function') {
             return data(this._args, this._config)
         }
-        return data?.match(/\[(.*?)\]/g)?.reduce((a, arg) => {
+
+        return data?.match(/(?<!#)\[(.*?)\]/g)?.reduce((a, arg) => {
             const [value, ...flags] = arg.slice(1, arg.length - 1).split(' ')
             return a.substring(0, a.indexOf(arg))
                 + flags.reduce((acc, flag) => this._changeDataByFlags(acc, flag), this._args[value] || value)
                 + a.substring(a.indexOf(arg) + arg.length, a.length)
-        }, data) || data
+        }, data).replace(/#(?=\[)/, '') || data.replace(/#(?=\[)/, '')
     }
 
     _changeDataByFlags(data, flag) {
@@ -28,10 +29,16 @@ module.exports = class ArgsHelper {
             return data.toUpperCase()
         if (/-l/.test(flag))
             return data.toLowerCase()
+        if (/-Cc/.test(flag))
+            return this._refactorSnakeCaseToCamelCase(data)
         return data
     }
     _refactorCamelCaseToSnakeCase(string) {
         return [...string].map(symbol => (symbol.toUpperCase() === symbol ? `_${symbol.toLowerCase()}` : symbol)).join('');
+    }
+
+    _refactorSnakeCaseToCamelCase(string) {
+        return string.split('_').map((s, i) => i !== 0 ? this._getStringWithFirstUpperChar(s) : s).join('')
     }
 
     _getStringWithFirstUpperChar(string) {

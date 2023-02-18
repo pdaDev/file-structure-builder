@@ -8,10 +8,12 @@ module.exports = class ActionBuilder {
 
     _treeHelper = new TreeHelper()
     _callbacks = []
+    _mode = 'build'
 
     constructor(constrictions) {
         const t = () => ''
         this._constrictions = constrictions || t
+        
     }
     resolveConstrictions(args, config) {
         const constrictionsResolve = this._constrictions(args, config, new ConstrictionsHelper(config, args))
@@ -23,13 +25,13 @@ module.exports = class ActionBuilder {
     }
     rewriteFile(path, builder) {
         this._callbacks.push(
-            (config, args) => this._treeHelper.rewriteFile(p.resolve(config?.dir || '', this._formatData(args, config, path)), this._getData(config, args, builder)));
+           (config, args) => this._treeHelper.rewriteFile(p.resolve(config?.dir || '', this._formatData(args, config, path)), this._getData(config, args, builder)));
         return this
     }
 
     makeStructure(path, structure) {
         this._callbacks.push(
-            (config, args) => this._treeHelper.createFileTree(p.resolve(config?.dir || '', this._formatData(args, config, path)), typeof structure === 'function'
+           (config, args) => this._treeHelper.createFileTree(p.resolve(config?.dir || '', this._formatData(args, config, path)), typeof structure === 'function'
                 ? structure(args, config)
                 : this._formatStructure(structure, args, config))
         )
@@ -69,7 +71,10 @@ module.exports = class ActionBuilder {
             if (typeof builder === 'string') {
                 return this._formatData(args, config, builder)
             }
-            return builder(new DataFormatter(data, config, args)).getData()
+            const changedData = builder(new DataFormatter(data, config, args))
+            return this._mode === 'test'
+             ? changedData.getChanges()
+             : changedData.getData()
         }
     }
 
@@ -77,7 +82,10 @@ module.exports = class ActionBuilder {
 
     }
 
-    launch(config, args) {
-        this._callbacks.forEach(callback => callback(config, args))
+    launch (config, args, mode) {
+        this._treeHelper.setMode(mode)
+        this._treeHelper.setConfig(config) 
+        this._mode = mode
+        return Promise.all(this._callbacks.map(async callback => await callback(config, args, mode)))
     }
 }
