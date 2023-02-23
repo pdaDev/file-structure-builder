@@ -55,6 +55,8 @@ module.exports = class ActionBuilder {
                 acc[formattedKey] = this._formatStructure(structure[key], args, config)
             } else if (structure[key] !== null) {
                 acc[formattedKey] = new ArgsHelper(args, config).formatData(structure[key])
+            } else {
+                acc[formattedKey] = structure[key];
             }
             return acc
         }, {})
