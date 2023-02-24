@@ -31,6 +31,8 @@ module.exports = class ArgsHelper {
             return data.toLowerCase()
         if (/-Cc/.test(flag))
             return this._refactorSnakeCaseToCamelCase(data)
+        if (/-f/.test(flag))
+            return this._getStringWithFirstLowerChar(data)
         return data
     }
     _refactorCamelCaseToSnakeCase(string) {
@@ -43,6 +45,9 @@ module.exports = class ArgsHelper {
 
     _getStringWithFirstUpperChar(string) {
         return string[0].toUpperCase() + string.slice(1, string.length);
+    }
+    _getStringWithFirstLowerChar(string) {
+        return string[0].toLowerCase() + string.slice(1, string.length);
     }
     _getJSX(string) {
         return this._getFile(string) + 'x'
